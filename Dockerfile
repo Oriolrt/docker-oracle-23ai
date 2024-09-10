@@ -1,4 +1,4 @@
-FROM oracle/database:21.3.0-ee
+FROM container-registry.oracle.com/database/free:latest
 
 MAINTAINER Oriol Ramos Terrades <oriol.ramos@uab.cat>
 
