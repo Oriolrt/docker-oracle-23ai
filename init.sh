@@ -33,7 +33,7 @@ EOF
 #exec $ORACLE_BASE/$RUN_FILE 
 _postprocess
 echo "Starting ssh service... "
-sudo /usr/sbin/sshd -D -e
+sudo /usr/sbin/sshd -D -e &
 echo "Starting cron service..."
 sudo crond start &
 
