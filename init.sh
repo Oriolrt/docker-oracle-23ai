@@ -6,7 +6,7 @@
 ########### UPDATE SQLNET.ORA ############
 function _postprocess() {
    echo "Updating sqlnet.ora"
-   SQLNET_FILE="${ORACLE_BASE}/oradata/dbconfig/ORCLCDB/sqlnet.ora"
+   SQLNET_FILE="${ORACLE_BASE}/oradata/dbconfig/FREE/sqlnet.ora"
    if [ -f ${SQLNET_FILE}  ]; then
 	  added_line="$(grep "DISABLE_OOB=ON" $SQLNET_FILE)" 
 	  if [ -z ${added_line}  ]; then
