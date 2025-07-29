@@ -27,13 +27,15 @@ oriolrt/oracle-23ai
 ```
 It will take about 10-15 minutes to create and setup the database on the first run. If you want to mount the data folder on your file system. Make sure you set the -v command appropriately for your system.
 ```
+mkdir -p ${HOME}/data ;
 docker run \
 --name oracle23a \
+-e HOST_UID=$(id -u $USER)  -e HOST_GID=$(id -g $USER)
 -p 1521:1521 \
 -p 5500:5500 \
 -p 2222:22 \
 -e ORACLE_PWD=oracle \
--v /path/to/store/db/files/:/opt/oracle/oradata \
+-v ${HOME}/data:/opt/oracle/oradata \
 -di \
 oriolrt/oracle-23ai
 ```

@@ -24,7 +24,7 @@ RUN (mkdir -p /root/.ssh/; \
      echo "StrictHostKeyChecking=no" > /root/.ssh/config; \
      echo "UserKnownHostsFile=/dev/null" >> /root/.ssh/config)
 
-RUN (mkdir -p /oracle/.ssh/; \
+RUN (mkdir -p home/oracle/.ssh/; \
      echo "StrictHostKeyChecking=no" > /root/.ssh/config; \
      echo "UserKnownHostsFile=/dev/null" >> /root/.ssh/config)
 

@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 echo "installing required packages"
 
@@ -47,7 +47,7 @@ EOF
 
 cat > ${ORACLE_PWD}delete_trc.sh <<EOF
 #!/bin/bash
-. ${ORACLE_HOME}.bash_profile
+. /home/oracle/.bash_profile
 
 # For deleting obsolete trace files
 OBS_IN_MIN=10080 # 7 days
