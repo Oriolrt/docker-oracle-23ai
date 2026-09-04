@@ -1,9 +1,10 @@
 FROM container-registry.oracle.com/database/free:latest
 
-MAINTAINER Oriol Ramos Terrades <oriol.ramos@uab.cat>
+LABEL maintainer="Oriol Ramos Terrades <oriol.ramos@uab.cat>"
 
 USER root
-ADD setup.sh /setup.sh
+COPY provision-env.sh /provision-env.sh
+COPY setup.sh /setup.sh
 RUN /setup.sh && rm -rf /setup.sh
 
 
@@ -24,16 +25,17 @@ RUN (mkdir -p /root/.ssh/; \
      echo "StrictHostKeyChecking=no" > /root/.ssh/config; \
      echo "UserKnownHostsFile=/dev/null" >> /root/.ssh/config)
 
-RUN (mkdir -p home/oracle/.ssh/; \
-     echo "StrictHostKeyChecking=no" > /root/.ssh/config; \
-     echo "UserKnownHostsFile=/dev/null" >> /root/.ssh/config)
+RUN (mkdir -p /home/oracle/.ssh/; \
+     echo "StrictHostKeyChecking=no" > /home/oracle/.ssh/config; \
+     echo "UserKnownHostsFile=/dev/null" >> /home/oracle/.ssh/config; \
+     chown -R oracle:oracle /home/oracle/.ssh)
 
 
-ADD init.sh /init.sh
+COPY init.sh /init.sh
 
 EXPOSE 22
-EXPOSE 8080
 EXPOSE 1521
+EXPOSE 5500
 
 USER oracle
 
