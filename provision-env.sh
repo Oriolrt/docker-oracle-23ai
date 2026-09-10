@@ -55,5 +55,12 @@ EOF
   chmod 755 /home/oracle/delete_trc.sh
 
   local line="55 23 */2 * * sh /home/oracle/delete_trc.sh > /home/oracle/delete_trc.log"
-  ( crontab -u oracle -l 2>/dev/null | grep -vF "delete_trc.sh"; echo "$line" ) | crontab -u oracle -
+  # `crontab -u oracle` is only allowed for root; this runs as root during the
+  # build but as the oracle user at container start, so only pass -u when
+  # actually root (otherwise crontab already targets the caller's own table).
+  if [ "$(id -u)" = "0" ]; then
+    ( crontab -u oracle -l 2>/dev/null | grep -vF "delete_trc.sh"; echo "$line" ) | crontab -u oracle -
+  else
+    ( crontab -l 2>/dev/null | grep -vF "delete_trc.sh"; echo "$line" ) | crontab -
+  fi
 }
