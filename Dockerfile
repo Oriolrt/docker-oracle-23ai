@@ -28,7 +28,7 @@ RUN (mkdir -p /root/.ssh/; \
 RUN (mkdir -p /home/oracle/.ssh/; \
      echo "StrictHostKeyChecking=no" > /home/oracle/.ssh/config; \
      echo "UserKnownHostsFile=/dev/null" >> /home/oracle/.ssh/config; \
-     chown -R oracle:oracle /home/oracle/.ssh)
+     chown -R oracle /home/oracle/.ssh)
 
 
 COPY init.sh /init.sh
