@@ -73,7 +73,7 @@ jobs:
             exit 1
           fi
 
-          cron_count=$(docker exec ci-oracle sh -c "crontab -u oracle -l | grep -c delete_trc.sh || true")
+          cron_count=$(docker exec ci-oracle sh -c "crontab -l | grep -c delete_trc.sh || true")
           if [ "$cron_count" -ne 1 ]; then
             echo "::error::cron entry got duplicated after restart ($cron_count copies)"
             exit 1
