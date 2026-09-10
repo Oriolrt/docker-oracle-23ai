@@ -1,4 +1,4 @@
-name: Build and push to Docker Hub
+name: Build, test and push to Docker Hub
 
 on:
   release:
@@ -7,9 +7,84 @@ on:
 
 env:
   IMAGE_NAME: oriolrt/oracle-23ai
+  TEST_TAG: oracle-23ai:ci-test
 
 jobs:
-  build-and-push:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (local only, for testing)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ env.TEST_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run container
+        run: |
+          docker run -d --name ci-oracle -e ORACLE_PWD=oracle ${{ env.TEST_TAG }}
+
+      - name: Wait for sshd and crond to start
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            if docker exec ci-oracle pgrep -x sshd >/dev/null 2>&1 && \
+               docker exec ci-oracle pgrep -x crond >/dev/null 2>&1; then
+              echo "sshd and crond are running"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::sshd/crond did not start within 150s"
+          docker logs ci-oracle
+          exit 1
+
+      - name: Check oracle user's SSH client config was created
+        run: |
+          set -euo pipefail
+          docker exec ci-oracle test -f /home/oracle/.ssh/config
+          docker exec ci-oracle grep -qF "StrictHostKeyChecking=no" /home/oracle/.ssh/config
+
+      - name: Restart container and check provisioning is idempotent
+        run: |
+          set -euo pipefail
+          docker restart ci-oracle
+          for i in $(seq 1 30); do
+            if docker exec ci-oracle pgrep -x sshd >/dev/null 2>&1 && \
+               docker exec ci-oracle pgrep -x crond >/dev/null 2>&1; then
+              break
+            fi
+            sleep 5
+          done
+
+          marker_count=$(docker exec ci-oracle sh -c "grep -c '# --- oracle-23ai environment (managed) ---' /home/oracle/.bash_profile || true")
+          if [ "$marker_count" -ne 1 ]; then
+            echo "::error::.bash_profile environment block got duplicated after restart ($marker_count copies)"
+            exit 1
+          fi
+
+          cron_count=$(docker exec ci-oracle sh -c "crontab -u oracle -l | grep -c delete_trc.sh || true")
+          if [ "$cron_count" -ne 1 ]; then
+            echo "::error::cron entry got duplicated after restart ($cron_count copies)"
+            exit 1
+          fi
+
+      - name: Clean up test container
+        if: always()
+        run: docker rm -f ci-oracle || true
+
+  publish:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,6 +108,8 @@ jobs:
         with:
           context: .
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.value }}
             ${{ env.IMAGE_NAME }}:latest
