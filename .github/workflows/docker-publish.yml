@@ -55,6 +55,46 @@ jobs:
           docker exec ci-oracle test -f /home/oracle/.ssh/config
           docker exec ci-oracle grep -qF "StrictHostKeyChecking=no" /home/oracle/.ssh/config
 
+      - name: Wait for database to be ready
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            if docker logs ci-oracle 2>&1 | grep -q "DATABASE IS READY TO USE"; then
+              echo "database ready"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::database did not report ready within 300s"
+          docker logs ci-oracle
+          exit 1
+
+      - name: Check sqlplus / as sysdba connects
+        run: |
+          set -euo pipefail
+          result=$(docker exec -u oracle ci-oracle bash -lc "echo \"select 'DB_OK' from dual;\" | sqlplus -s / as sysdba")
+          echo "$result"
+          echo "$result" | grep -q "DB_OK"
+
+      - name: Check a cron job actually executes as the oracle user
+        run: |
+          set -euo pipefail
+          docker exec -u oracle ci-oracle bash -c 'crontab -l > /tmp/orig-crontab.txt; ( crontab -l; echo "* * * * * id > /home/oracle/cron-ran.txt 2>&1" ) | crontab -'
+          fired=0
+          for i in $(seq 1 18); do
+            if docker exec -u oracle ci-oracle test -f /home/oracle/cron-ran.txt; then
+              fired=1
+              break
+            fi
+            sleep 5
+          done
+          docker exec -u oracle ci-oracle bash -c 'crontab /tmp/orig-crontab.txt; rm -f /home/oracle/cron-ran.txt'
+          if [ "$fired" -ne 1 ]; then
+            echo "::error::cron job never executed within 90s (crond may be failing to open a PAM session)"
+            exit 1
+          fi
+          echo "cron job fired as oracle"
+
       - name: Restart container and check provisioning is idempotent
         run: |
           set -euo pipefail

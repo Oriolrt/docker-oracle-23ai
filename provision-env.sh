@@ -4,7 +4,11 @@
 # dos scripts es desincronitzin quan cal canviar un valor.
 
 ORACLE_BASE=/opt/oracle/
-ORACLE_HOME=${ORACLE_BASE}product/23ai/dbhomeFree/
+# Detectat dinamicament: la versio (23ai, 26ai...) la fixa la imatge base
+# (container-registry.oracle.com/database/free:latest, sense pin de versio)
+# i canvia amb el temps; fixar-la aqui trenca sqlplus/PATH quan Oracle
+# n'actualitza la imatge.
+ORACLE_HOME=$(echo ${ORACLE_BASE}product/*/dbhomeFree/)
 ORACLE_SID=FREE
 ORACLE_PDB=FREEPDB1
 ORACLE_HOME_DIR=/home/oracle/
