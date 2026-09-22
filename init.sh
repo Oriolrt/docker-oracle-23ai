@@ -2,6 +2,14 @@
 
 . /provision-env.sh
 
+# Oracle's local-OS-authentication check for bequeath connections (used by
+# `/ as sysdba`, below and in _reset_default_password) needs USER/LOGNAME,
+# not just the process UID - neither is set in a non-login context like this
+# script (confirmed: unset here -> ORA-12547 TNS:lost contact; exporting
+# them -> connects fine).
+export USER=oracle
+export LOGNAME=oracle
+
 ########### UPDATE SQLNET.ORA ############
 function _postprocess() {
    echo "Updating sqlnet.ora"
@@ -27,19 +35,41 @@ function _recreate_files() {
   provision_oracle_env
 }
 
+########### RESET SYS/SYSTEM PASSWORD ############
+# The base image ships with a pre-built database, so ORACLE_PWD passed to
+# `docker run` is never applied by the base image itself - only a true
+# first-time database creation would honor it. Force SYS/SYSTEM to match it
+# on every start so the credentials documented in the README actually work.
+function _reset_default_password() {
+  local pwd="${ORACLE_PWD:-oracle}"
+  for i in $(seq 1 60); do
+    if echo "select 1 from dual;" | sqlplus -s / as sysdba 2>/dev/null | grep -q '^1$'; then
+      break
+    fi
+    sleep 5
+  done
+  sqlplus -s / as sysdba <<SQL
+whenever sqlerror continue
+alter user sys identified by "${pwd}";
+alter user system identified by "${pwd}" account unlock;
+exit;
+SQL
+}
+
 ########### MAIN ############
 
 
 # run Oracle
-#exec $ORACLE_BASE/$RUN_FILE 
+#exec $ORACLE_BASE/$RUN_FILE
 _postprocess
 _recreate_files
 echo "Starting ssh service... "
 sudo /usr/sbin/sshd -D -e &
 echo "Starting cron service..."
 sudo crond -n &
+_reset_default_password &
 
 
 # run Oracle
-exec $ORACLE_BASE/$RUN_FILE 
+exec $ORACLE_BASE/$RUN_FILE
 
