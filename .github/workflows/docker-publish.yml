@@ -32,7 +32,7 @@ jobs:
 
       - name: Run container
         run: |
-          docker run -d --name ci-oracle -e ORACLE_PWD=oracle ${{ env.TEST_TAG }}
+          docker run -d --name ci-oracle --shm-size=1g -e ORACLE_PWD=oracle ${{ env.TEST_TAG }}
 
       - name: Wait for sshd and crond to start
         run: |
