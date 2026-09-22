@@ -72,11 +72,11 @@ jobs:
       - name: Check sqlplus / as sysdba connects
         run: |
           set -euo pipefail
-          # The "DATABASE IS READY TO USE" banner can print a few seconds
-          # before the local instance actually accepts bequeath connections
-          # (seen as ORA-12547: TNS:lost contact right after it appears), so
-          # retry instead of treating the first attempt as final.
-          for i in $(seq 1 12); do
+          # The "DATABASE IS READY TO USE" banner can print before the local
+          # instance actually accepts bequeath connections (seen as
+          # ORA-12547: TNS:lost contact right after it appears), so retry
+          # instead of treating the first attempt as final.
+          for i in $(seq 1 18); do
             if result=$(docker exec -u oracle ci-oracle bash -lc "echo \"select 'DB_OK' from dual;\" | sqlplus -s / as sysdba" 2>&1) && echo "$result" | grep -q "DB_OK"; then
               echo "$result"
               exit 0
@@ -85,6 +85,10 @@ jobs:
           done
           echo "::error::sqlplus / as sysdba never connected successfully"
           echo "$result"
+          echo "=== docker logs (tail) ==="
+          docker logs --tail 200 ci-oracle
+          echo "=== alert log (tail) ==="
+          docker exec ci-oracle bash -c 'find /opt/oracle/diag -iname "alert_*.log" -exec tail -100 {} \;' || true
           exit 1
 
       - name: Check a cron job actually executes as the oracle user
