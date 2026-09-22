@@ -80,7 +80,7 @@ jobs:
           # on the bequeath exec path, not a problem with the image. Test the
           # documented connection path instead, which is representative of
           # how users actually connect anyway.
-          for i in $(seq 1 8); do
+          for i in $(seq 1 20); do
             if result=$(docker exec -u oracle ci-oracle bash -lc "echo \"select 'DB_OK' from dual;\" | sqlplus -s system/oracle@//localhost:1521/FREEPDB1" 2>&1) && echo "$result" | grep -q "DB_OK"; then
               echo "$result"
               exit 0
@@ -89,8 +89,8 @@ jobs:
           done
           echo "::error::sqlplus never connected successfully"
           echo "$result"
-          echo "=== docker logs (tail) ==="
-          docker logs --tail 200 ci-oracle
+          echo "=== docker logs (full) ==="
+          docker logs ci-oracle
           exit 1
 
       - name: Check a cron job actually executes as the oracle user
