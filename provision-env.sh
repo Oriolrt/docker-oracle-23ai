@@ -19,6 +19,13 @@ function provision_oracle_env() {
   if ! grep -qF "${ENV_MARKER}" /home/oracle/.bash_profile 2>/dev/null; then
 cat <<EOF >> /home/oracle/.bash_profile
 ${ENV_MARKER}
+# sshd runs with UsePAM no, so an interactive ssh session never gets USER/
+# LOGNAME set for us; without them Oracle's local-OS-authentication check
+# for bequeath connections (\`sqlplus / as sysdba\`) fails with ORA-12547
+# TNS:lost contact (same root cause fixed for init.sh's own shell in
+# _reset_default_password).
+export USER=oracle
+export LOGNAME=oracle
 export ORACLE_HOME=${ORACLE_HOME}
 export LD_LIBRARY_PATH=${ORACLE_HOME}lib:/usr/lib
 export ORACLE_SID=${ORACLE_SID}
