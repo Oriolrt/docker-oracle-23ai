@@ -22,6 +22,20 @@ export ORACLE_HOME_DIR=/home/oracle/
 # sqlnet.ora.
 export LD_LIBRARY_PATH="${ORACLE_HOME}lib:/usr/lib"
 export PATH="${ORACLE_HOME}bin:${PATH}"
+# Diagnòstic temporal: si el glob de dalt no fa match amb res real (p. ex. perquè
+# /opt/oracle/product/*/dbhomeFree/ encara no existeix en aquest punt de l'arrencada,
+# o l'estructura de la imatge base ha tornat a canviar), ORACLE_HOME es queda amb
+# l'string LITERAL del patró (amb el "*" sense expandir) -- exportar un valor així no
+# soluciona res, i el símptoma ("SP2-0667: Message file... not found") és idèntic al
+# d'ORACLE_HOME buit. Deixem constància explícita al log perquè la propera falla ho
+# digui directament en comptes d'haver-ho de deduir.
+if [ ! -d "$ORACLE_HOME" ]; then
+  echo "[provision-env.sh] AVÍS: ORACLE_HOME resol a '${ORACLE_HOME}', que no existeix com a directori. El glob ${ORACLE_BASE}product/*/dbhomeFree/ no ha fet match amb res." >&2
+  echo "[provision-env.sh] Contingut real de ${ORACLE_BASE}product/ :" >&2
+  ls -la "${ORACLE_BASE}product/" >&2 2>&1 || echo "[provision-env.sh] (${ORACLE_BASE}product/ tampoc existeix)" >&2
+else
+  echo "[provision-env.sh] ORACLE_HOME=${ORACLE_HOME}" >&2
+fi
 ENV_PY=oraenv.py
 
 function provision_oracle_env() {
