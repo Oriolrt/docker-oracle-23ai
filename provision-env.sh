@@ -3,15 +3,25 @@
 # setup.sh (build) com init.sh (arrencada del contenidor). Evita que els
 # dos scripts es desincronitzin quan cal canviar un valor.
 
-ORACLE_BASE=/opt/oracle/
+export ORACLE_BASE=/opt/oracle/
 # Detectat dinamicament: la versio (23ai, 26ai...) la fixa la imatge base
 # (container-registry.oracle.com/database/free:latest, sense pin de versio)
 # i canvia amb el temps; fixar-la aqui trenca sqlplus/PATH quan Oracle
 # n'actualitza la imatge.
-ORACLE_HOME=$(echo ${ORACLE_BASE}product/*/dbhomeFree/)
-ORACLE_SID=FREE
-ORACLE_PDB=FREEPDB1
-ORACLE_HOME_DIR=/home/oracle/
+export ORACLE_HOME=$(echo ${ORACLE_BASE}product/*/dbhomeFree/)
+export ORACLE_SID=FREE
+export ORACLE_PDB=FREEPDB1
+export ORACLE_HOME_DIR=/home/oracle/
+# init.sh crida sqlplus directament des del seu propi procés (_postprocess(),
+# _reset_default_password()) -- no dins d'un shell de login que llegeixi
+# .bash_profile. Sense `export` aquí, ORACLE_HOME/LD_LIBRARY_PATH només
+# existien com a variables locals d'aquest script font, mai arribaven al
+# procés fill `sqlplus`, i petava amb "SP2-0667: Message file sp1<lang>.msb
+# not found / SP2-0750: You may need to set ORACLE_HOME" -- reproduït en
+# directe a la primera crida de _postprocess(), just després d'actualitzar
+# sqlnet.ora.
+export LD_LIBRARY_PATH="${ORACLE_HOME}lib:/usr/lib"
+export PATH="${ORACLE_HOME}bin:${PATH}"
 ENV_PY=oraenv.py
 
 function provision_oracle_env() {
