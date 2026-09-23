@@ -21,21 +21,6 @@ function _postprocess() {
 DISABLE_OOB=ON
 EOF
    
-	   # _postprocess() corre a l'inici de MAIN, abans que `exec $ORACLE_BASE/$RUN_FILE`
-	   # (mes avall) hagi arrencat la instancia d'Oracle de debo -- sqlnet.ora ja existeix
-	   # com a plantilla baked-in a la imatge, aixi que aquest bloc SI s'executa en el
-	   # primer arrencada, pero la BD encara no es reachable en aquest punt. Cridar
-	   # sqlplus aqui petava amb "Error 6 initializing SQL*Plus / SP2-0667: Message
-	   # file... not found" -- amb ORACLE_HOME ja correctament exportat i resolt,
-	   # confirmant que no era un problema de configuracio sino de sincronitzacio.
-	   # Esperem que bequeath funcioni de veritat (mateix patro que
-	   # _reset_default_password()) abans d'intentar-ho.
-	   for i in $(seq 1 60); do
-	     if echo "select 1 from dual;" | sqlplus -s / as sysdba 2>/dev/null | grep -q '^1$'; then
-	       break
-	     fi
-	     sleep 5
-	   done
    	sqlplus / as sysdba <<EOF
    shutdown immediate;
    startup
