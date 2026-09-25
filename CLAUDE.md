@@ -61,6 +61,27 @@ Three scripts run at different stages of the image lifecycle, and it's easy to e
 
 The image ships with a well-known default password (`oracle`, documented in the README) for both SSH and the database, plus passwordless `sudo` for the `oracle` user — this is intentional for local/isolated classroom use, but any change that affects auth (`sshd_config`, sudoers, credentials) should preserve that isolation assumption or update the README warning accordingly.
 
+## Resolved (2026-09-25): root cause of the sqlplus connectivity failures
+
+The issue parked below on 2026-09-23 is fixed. Root cause, found by finally getting a local Docker host to
+iterate against directly (the thing the next-steps section asked for): **`ORACLE_HOME` (and `ORACLE_BASE`) must
+not have a trailing slash.** `provision-env.sh` set `ORACLE_HOME=$(echo ${ORACLE_BASE}product/*/dbhomeFree/)` —
+note the trailing `/` baked into the glob. With that trailing slash, `sqlplus / as sysdba` (bequeath, local
+OS-authenticated) reliably fails with `ORA-12547: TNS:lost contact`; removing only the trailing slash (keeping
+everything else, including `LD_LIBRARY_PATH`) made the exact same connection work instantly. Verified by isolating
+each exported variable one at a time against a known-good container (bare `sqlplus / as sysdba` works out of the
+box on an unmodified container, with no exports at all) — re-exporting `ORACLE_HOME` with a trailing slash was
+the only change that broke it; `LD_LIBRARY_PATH` alone did not.
+
+This explains every symptom chased below and in the previous session without ever landing on the actual cause:
+`USER`/`LOGNAME`, the PAM `pam_loginuid`/`system-auth` fixes, and the message-file/`NLS_LANG` theory were all real
+findings about *other* things, but none of them were what was actually breaking the CI check — every attempt to
+verify bequeath through this repo's own `provision-env.sh` was silently poisoned by the trailing slash, which is
+also why the same connection worked fine when tested against a container with no exports sourced at all. Fixed by
+dropping the trailing slash from both `ORACLE_BASE` and `ORACLE_HOME` and inserting explicit `/` separators at
+every concatenation site (`${ORACLE_HOME}/bin`, `${ORACLE_HOME}/lib`, `${ORACLE_BASE}/admin`, etc.) instead of
+relying on the variable's own trailing slash.
+
 ## Known issue (parked, 2026-09-23): CI's sqlplus connectivity check never passes
 
 `Curs2026-27` (the course release tag) is stuck at the 2026-09-10 build — every `workflow_dispatch`/`release`
