@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repository is
 
-A Dockerfile that layers SSH access and a cron service on top of the official Oracle Database 23ai Free image (`container-registry.oracle.com/database/free:latest`), for the Database Administration course in the Computer Engineering degree at UAB. There is no application code — this repo is entirely Docker/shell configuration.
+A Dockerfile that layers SSH access and a cron service on top of the official Oracle Database Free image (`container-registry.oracle.com/database/free`), for the Database Administration course in the Computer Engineering degree at UAB. There is no application code — this repo is entirely Docker/shell configuration.
+
+The base image is pinned by digest in the `Dockerfile` (currently **Oracle 26ai** — see the comment there for why and how to move it deliberately). It was not always: the registry only offers a `:latest` tag for this image, and `:latest` silently moved from 23ai to 26ai underneath this repo at some point, which is what broke `sqlplus`/`ORACLE_HOME` and cost a very long debugging session (see below) before it was diagnosed. `ORACLE_HOME` itself is still detected dynamically in `provision-env.sh` (not hardcoded to a version), so a future deliberate bump of the pinned digest doesn't require touching that logic — only the digest in the `Dockerfile` and the version mentions in `README.md`.
 
 ## Build and run
 

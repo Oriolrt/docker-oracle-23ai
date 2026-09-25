@@ -1,12 +1,14 @@
 # oracle-23ai 
-Oracle Database 23ai Free  
+Oracle Database 26ai Free  
 
 This docker add a layer with ssh server connection enabled on top of the Official Oracle images and the crontab service enable. It has been prepared for the the course of Database Administration offered in the degree in [Computer Engineering](https://www.uab.cat/web/estudiar/ehea-degrees/general-information-1216708259085.html?param1=1263367146646) of the Autnomous University of Barcelona (UAB).
 
 > ⚠️ **Security warning**: this image ships with a default, well-known password (`oracle`) for both SSH and the database, and the `oracle` user has passwordless `sudo`. It is intended for local/isolated use in a teaching environment only — never expose the mapped ports (`1521`, `5500`, `2222`) to an untrusted network or the public Internet without changing these defaults first.
 
+> ℹ️ **Version note**: the repo/image name still says "23ai" for historical/continuity reasons (existing `docker pull`/`docker run` commands keep working), but the Oracle version actually installed is now **26ai** — the upstream base image moved on from 23ai without a version-specific tag to pin to, which is what the image actually installs is now pinned by digest in the `Dockerfile` (see comment there) so it won't silently drift to a future version again without a deliberate update.
+
 ## Description:
-1. The Dockerfile is build from the official docker [repository](https://www.oracle.com/es/database/free/get-started/). You will create a local image with an Oracle 23ai Single Instance ready to be used.
+1. The Dockerfile is build from the official docker [repository](https://www.oracle.com/es/database/free/get-started/). You will create a local image with an Oracle 26ai Single Instance ready to be used.
 
 2. clone this repository and build the image:
 ```

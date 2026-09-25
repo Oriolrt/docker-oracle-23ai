@@ -1,4 +1,12 @@
-FROM container-registry.oracle.com/database/free:latest
+# Pinned by digest, not tag: Oracle's registry only offers ":latest" for this
+# image (no version-specific tags), and ":latest" silently moved from 23ai to
+# 26ai underneath this Dockerfile at some point, breaking sqlplus/ORACLE_HOME
+# and everything built on top of it until that was diagnosed. This digest is
+# Oracle AI Database 26ai Free (23.26.3.0.0). To deliberately move to a future
+# version: `docker pull container-registry.oracle.com/database/free:latest`,
+# take the new digest from `docker inspect ... --format '{{index .RepoDigests 0}}'`,
+# update it here, and update the version mentions in README.md.
+FROM container-registry.oracle.com/database/free@sha256:f988b0c04c4c386cd306a2a914c0d7a9702d83acc31b064a28ad8eb6278a8fba
 
 LABEL maintainer="Oriol Ramos Terrades <oriol.ramos@uab.cat>"
 
