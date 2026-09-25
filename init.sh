@@ -42,12 +42,32 @@ function _recreate_files() {
 # on every start so the credentials documented in the README actually work.
 function _reset_default_password() {
   local pwd="${ORACLE_PWD:-oracle}"
-  for i in $(seq 1 60); do
+  local ready=0 i
+
+  # Fins a 45 min (180 x 15s), no 5: quan /opt/oracle/oradata es munta buit -- com fa
+  # GABD-Practiques, que hi posa un volum XFS per grup -- la imatge NO pot reaprofitar la
+  # base de dades pre-construida i DBCA n'ha de crear una de nova. Amb diversos contenidors
+  # Oracle creant-ne alhora al mateix node, això passa de llarg dels 30 min.
+  for i in $(seq 1 180); do
     if echo "select 1 from dual;" | sqlplus -s / as sysdba 2>/dev/null | grep -q '^1$'; then
+      ready=1
       break
     fi
-    sleep 5
+    sleep 15
   done
+
+  # Si no ha arribat a obrir-se, NO s'executen els ALTER. Abans s'executaven igualment en
+  # expirar l'espera, i l'unic que feien era omplir el log de
+  #   alter user system identified by "oracle" account unlock
+  #   ERROR at line 1: ORA-01012: not logged on
+  # sense reiniciar res -- reproduit en directe amb DBCA al 47% (dcccluster, 2026-09-25).
+  # Quan la BD es crea de zero, a mes, es el propi DBCA qui aplica ORACLE_PWD, aixi que
+  # rendir-se aqui no deixa les credencials malament: nomes evita el soroll.
+  if (( ! ready )); then
+    echo "⚠️  La base de dades no ha acceptat connexions en 45 min; no es reinicien les contrasenyes de SYS/SYSTEM (si DBCA encara s'està executant, ell mateix hi aplica ORACLE_PWD)." >&2
+    return 1
+  fi
+
   sqlplus -s / as sysdba <<SQL
 whenever sqlerror continue
 -- Anything (CI's own connectivity check, a real client retrying, a student
